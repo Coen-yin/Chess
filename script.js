@@ -228,6 +228,7 @@ class ChessGame {
         };
         this.enPassantTarget = null;
         this.isFlipped = false;
+        this.puterAI = new PuterAI();
         
         this.initializeEventListeners();
     }
@@ -411,6 +412,7 @@ class ChessGame {
         // Check for game over conditions
         if (this.isGameOver()) {
             this.gameState = this.isKingInCheckmate(this.currentPlayer) ? 'checkmate' : 'stalemate';
+            this.showGameOverModal();
         }
         
         // AI move if needed with improved timing
@@ -419,7 +421,7 @@ class ChessGame {
             const thinkingTime = this.aiLevel <= 3 ? 300 + Math.random() * 200 : // Fast for beginners
                                  this.aiLevel <= 6 ? 600 + Math.random() * 400 : // Medium for intermediate
                                  1000 + Math.random() * 800; // Longer for advanced
-            setTimeout(() => this.makeAIMove(), thinkingTime);
+            setTimeout(async () => await this.makeAIMove(), thinkingTime);
         }
         
         // Play sound and update display
@@ -582,207 +584,48 @@ class ChessGame {
         return moves;
     }
 
-    // Enhanced AI Implementation
-    makeAIMove() {
-        const bestMove = this.getBestMove();
-        if (bestMove) {
-            this.makeMove(bestMove.from.row, bestMove.from.col, bestMove.to.row, bestMove.to.col, bestMove.promotion);
+    // Enhanced AI Implementation using Puter AI
+    async makeAIMove() {
+        const moves = this.getAllLegalMoves('black');
+        if (moves.length === 0) return;
+
+        try {
+            const bestMove = await this.puterAI.getBestMove(
+                this.board, 
+                'black', 
+                moves, 
+                this.aiLevel
+            );
+            
+            if (bestMove) {
+                this.makeMove(bestMove.from.row, bestMove.from.col, bestMove.to.row, bestMove.to.col, bestMove.promotion);
+            }
+        } catch (error) {
+            console.error('Error in AI move generation:', error);
+            // Fallback to random move
+            const randomMove = moves[Math.floor(Math.random() * moves.length)];
+            this.makeMove(randomMove.from.row, randomMove.from.col, randomMove.to.row, randomMove.to.col, randomMove.promotion);
         }
     }
 
-    getBestMove() {
-        // Adjust search depth based on AI level for realistic play
-        const searchDepth = this.getSearchDepth();
+    async getBestMove() {
         const moves = this.getAllLegalMoves('black');
         if (moves.length === 0) return null;
         
-        let bestMove = null;
-        let bestScore = -Infinity;
-        
-        // Add opening book for higher difficulties
-        if (this.moveCount < 10 && this.aiLevel >= 6) {
-            const openingMove = this.getOpeningMove();
-            if (openingMove) return openingMove;
+        try {
+            return await this.puterAI.getBestMove(
+                this.board, 
+                'black', 
+                moves, 
+                this.aiLevel
+            );
+        } catch (error) {
+            console.error('Error getting best move:', error);
+            // Fallback to random move selection
+            return moves[Math.floor(Math.random() * moves.length)];
         }
-        
-        for (const move of moves) {
-            const score = this.minimax(move, searchDepth - 1, -Infinity, Infinity, false);
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-        }
-        
-        return bestMove;
     }
 
-    getSearchDepth() {
-        // Search depth based on AI difficulty
-        const depthLevels = {
-            1: 1,    // Beginner - very shallow
-            2: 1,    // Novice
-            3: 2,    // Amateur
-            4: 2,    // Intermediate 
-            5: 3,    // Advanced
-            6: 3,    // Expert
-            7: 4,    // Master
-            8: 4,    // Grandmaster
-            9: 5,    // Super GM
-            10: 6    // Engine - deepest search
-        };
-        return depthLevels[this.aiLevel] || 2;
-    }
-
-    getOpeningMove() {
-        // Enhanced opening book with better moves
-        const openingMoves = [];
-        
-        // First move options for black
-        if (this.moveCount === 1) {
-            // Respond to e4 with e5 or c5 (Sicilian)
-            if (this.board[4][4] === 'P') { // White played e4
-                openingMoves.push({ from: { row: 1, col: 4 }, to: { row: 3, col: 4 } }); // e5
-                openingMoves.push({ from: { row: 1, col: 2 }, to: { row: 3, col: 2 } }); // c5
-            }
-            // Respond to d4 with d5 or Nf6
-            else if (this.board[4][3] === 'P') { // White played d4
-                openingMoves.push({ from: { row: 1, col: 3 }, to: { row: 3, col: 3 } }); // d5
-                openingMoves.push({ from: { row: 0, col: 6 }, to: { row: 2, col: 5 } }); // Nf6
-            }
-        }
-        
-        // Second move for black
-        if (this.moveCount === 3) {
-            // Develop knights
-            openingMoves.push({ from: { row: 0, col: 1 }, to: { row: 2, col: 2 } }); // Nc6
-            openingMoves.push({ from: { row: 0, col: 6 }, to: { row: 2, col: 5 } }); // Nf6
-        }
-        
-        // Filter valid moves
-        const validOpeningMoves = openingMoves.filter(move => {
-            const piece = this.board[move.from.row][move.from.col];
-            return piece && !this.isPieceWhite(piece) && 
-                   !this.board[move.to.row][move.to.col] &&
-                   this.isValidSquare(move.to.row, move.to.col);
-        });
-        
-        if (validOpeningMoves.length > 0) {
-            return validOpeningMoves[Math.floor(Math.random() * validOpeningMoves.length)];
-        }
-        
-        return null;
-    }
-
-    minimax(move, depth, alpha, beta, isMaximizing) {
-        if (depth === 0) {
-            return this.evaluatePosition();
-        }
-        
-        // Make temporary move
-        const originalBoard = JSON.parse(JSON.stringify(this.board));
-        this.board[move.to.row][move.to.col] = this.board[move.from.row][move.from.col];
-        this.board[move.from.row][move.from.col] = null;
-        
-        const moves = this.getAllLegalMoves(isMaximizing ? 'black' : 'white');
-        let bestScore = isMaximizing ? -Infinity : Infinity;
-        
-        for (const nextMove of moves) {
-            const score = this.minimax(nextMove, depth - 1, alpha, beta, !isMaximizing);
-            
-            if (isMaximizing) {
-                bestScore = Math.max(score, bestScore);
-                alpha = Math.max(alpha, score);
-            } else {
-                bestScore = Math.min(score, bestScore);
-                beta = Math.min(beta, score);
-            }
-            
-            if (beta <= alpha) break;
-        }
-        
-        // Restore board
-        this.board = originalBoard;
-        return bestScore;
-    }
-
-    evaluatePosition() {
-        const pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-        let score = 0;
-        
-        // Material evaluation
-        for (let row = 0; row < 8; row++) {
-            for (let col = 0; col < 8; col++) {
-                const piece = this.board[row][col];
-                if (piece) {
-                    const value = pieceValues[piece.toLowerCase()];
-                    const positionalBonus = this.getPositionalValue(piece, row, col);
-                    const totalValue = value + positionalBonus;
-                    score += this.isPieceWhite(piece) ? -totalValue : totalValue;
-                }
-            }
-        }
-        
-        // Encourage piece development in opening
-        if (this.moveCount < 20) {
-            score += this.evaluateDevelopment();
-        }
-        
-        // King safety evaluation
-        score += this.evaluateKingSafety();
-        
-        // Add randomness based on AI difficulty level for realistic play
-        const randomFactor = this.getRandomnessFactor();
-        const randomAdjustment = (Math.random() - 0.5) * randomFactor;
-        
-        return score + randomAdjustment;
-    }
-    
-    evaluateDevelopment() {
-        let developmentScore = 0;
-        
-        // Encourage knight development
-        const blackKnights = [this.board[0][1], this.board[0][6]];
-        blackKnights.forEach((knight, index) => {
-            if (!knight) {
-                developmentScore += 10; // Knight was developed
-            }
-        });
-        
-        // Encourage bishop development  
-        const blackBishops = [this.board[0][2], this.board[0][5]];
-        blackBishops.forEach((bishop, index) => {
-            if (!bishop) {
-                developmentScore += 10; // Bishop was developed
-            }
-        });
-        
-        return developmentScore;
-    }
-    
-    evaluateKingSafety() {
-        let safetyScore = 0;
-        
-        // Find kings
-        const blackKing = this.findKing('black');
-        const whiteKing = this.findKing('white');
-        
-        if (blackKing) {
-            // Prefer castled position or safe king placement
-            if (blackKing.col >= 5 || blackKing.col <= 2) {
-                safetyScore += 15; // King in relatively safe position
-            }
-        }
-        
-        if (whiteKing) {
-            // Penalize exposed white king
-            if (whiteKing.col >= 5 || whiteKing.col <= 2) {
-                safetyScore -= 15; // Penalize safe white king
-            }
-        }
-        
-        return safetyScore;
-    }
-    
     findKing(color) {
         const kingPiece = color === 'white' ? 'K' : 'k';
         for (let row = 0; row < 8; row++) {
@@ -795,43 +638,7 @@ class ChessGame {
         return null;
     }
 
-    getPositionalValue(piece, row, col) {
-        const pieceType = piece.toLowerCase();
-        const isWhite = this.isPieceWhite(piece);
-        
-        // Simplified positional evaluation
-        let bonus = 0;
-        
-        // Center control bonus for knights and bishops
-        if ((pieceType === 'n' || pieceType === 'b') && 
-            row >= 3 && row <= 4 && col >= 3 && col <= 4) {
-            bonus = 10;
-        }
-        
-        // Pawn advancement bonus
-        if (pieceType === 'p') {
-            bonus = isWhite ? (7 - row) * 5 : row * 5;
-        }
-        
-        return isWhite ? bonus : -bonus;
-    }
 
-    getRandomnessFactor() {
-        // More randomness for lower difficulties, less for higher
-        const randomnessLevels = {
-            1: 200,  // Beginner - very random
-            2: 150,  // Novice
-            3: 100,  // Amateur 
-            4: 80,   // Intermediate
-            5: 60,   // Advanced
-            6: 40,   // Expert
-            7: 25,   // Master
-            8: 15,   // Grandmaster
-            9: 8,    // Super GM
-            10: 3    // Engine - minimal randomness
-        };
-        return randomnessLevels[this.aiLevel] || 50;
-    }
 
     getAllLegalMoves(color) {
         const moves = [];
@@ -1013,6 +820,25 @@ class ChessGame {
         
         movesContainer.innerHTML = moveText;
     }
+
+    showGameOverModal() {
+        const modal = document.getElementById('gameOverModal');
+        if (!modal) return;
+
+        const resultElement = document.getElementById('gameResult');
+        const messageElement = document.getElementById('gameResultMessage');
+
+        if (this.gameState === 'checkmate') {
+            const winner = this.currentPlayer === 'white' ? 'Black' : 'White';
+            if (resultElement) resultElement.textContent = `${winner} Wins!`;
+            if (messageElement) messageElement.textContent = `Checkmate! The ${this.currentPlayer} king has been captured.`;
+        } else if (this.gameState === 'stalemate') {
+            if (resultElement) resultElement.textContent = 'Draw';
+            if (messageElement) messageElement.textContent = 'Stalemate! No legal moves available but the king is not in check.';
+        }
+
+        modal.classList.add('show');
+    }
 }
 
 // Simple implementations for other managers
@@ -1037,7 +863,257 @@ class AnalysisManager {
     analyzePosition() {}
 }
 
-class SimpleEngine {
+class PuterAI {
+    constructor() {
+        this.isInitialized = false;
+        this.initializePuter();
+    }
+
+    async initializePuter() {
+        try {
+            // Check if Puter is available
+            if (typeof puter !== 'undefined') {
+                this.isInitialized = true;
+                console.log('Puter AI initialized successfully');
+            } else {
+                console.warn('Puter AI not available, falling back to simple evaluation');
+                this.isInitialized = false;
+            }
+        } catch (error) {
+            console.error('Error initializing Puter AI:', error);
+            this.isInitialized = false;
+        }
+    }
+
+    async evaluatePosition(boardState, currentPlayer, moveHistory = []) {
+        if (!this.isInitialized || typeof puter === 'undefined') {
+            // Fallback to simple evaluation
+            return (Math.random() - 0.5) * 4;
+        }
+
+        try {
+            const boardFEN = this.boardToFEN(boardState, currentPlayer);
+            const prompt = `As a chess master, analyze this position in FEN notation: ${boardFEN}
+
+COMPREHENSIVE CHESS ANALYSIS REQUIRED:
+
+Position Details:
+- Current player to move: ${currentPlayer}
+- FEN: ${boardFEN}
+
+Analyze for:
+1. IMMEDIATE THREATS:
+   - Is the current player in check?
+   - Are there checkmate threats in 1-2 moves?
+   - Any pieces under attack (hanging pieces)?
+
+2. MATERIAL BALANCE:
+   - Count all pieces: Pawns (1pt), Knights/Bishops (3pts), Rooks (5pts), Queen (9pts)
+   - Who has material advantage?
+
+3. POSITIONAL FACTORS:
+   - King safety (castled, exposed, etc.)
+   - Piece development and activity
+   - Pawn structure (doubled, isolated, passed pawns)
+   - Control of center squares (e4, e5, d4, d5)
+
+4. TACTICAL OPPORTUNITIES:
+   - Pins, forks, skewers, discovered attacks
+   - Sacrificial possibilities
+   - Back-rank weaknesses
+
+5. STRATEGIC ASSESSMENT:
+   - Opening phase: Are pieces developing properly?
+   - Middlegame: Piece coordination and plans
+   - Endgame: King activity and pawn promotion potential
+
+EVALUATION SCALE: 
+Rate from ${currentPlayer}'s perspective: -10 (very bad) to +10 (very good)
+- Checkmate for ${currentPlayer} = +10
+- Checkmate against ${currentPlayer} = -10
+- Major material advantage = +5 to +7
+- Small positional advantage = +1 to +3
+- Equal position = 0
+- Small disadvantage = -1 to -3
+
+Respond with: [NUMERICAL SCORE] followed by detailed explanation.`;
+
+            const response = await puter.ai.chat(prompt, {
+                model: 'claude',
+                stream: false
+            });
+
+            // Extract numerical evaluation from response
+            const evaluation = this.parseEvaluation(response);
+            return evaluation;
+
+        } catch (error) {
+            console.error('Error getting AI evaluation:', error);
+            // Fallback to random evaluation
+            return (Math.random() - 0.5) * 4;
+        }
+    }
+
+    async getBestMove(boardState, currentPlayer, legalMoves, difficulty = 5) {
+        if (!this.isInitialized || typeof puter === 'undefined' || legalMoves.length === 0) {
+            // Fallback to random move selection
+            return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        }
+
+        try {
+            const boardFEN = this.boardToFEN(boardState, currentPlayer);
+            const movesText = legalMoves.map(move => 
+                `${this.squareToAlgebraic(move.from.row, move.from.col)}${this.squareToAlgebraic(move.to.row, move.to.col)}`
+            ).join(', ');
+
+            const difficultyDescriptions = {
+                1: 'beginner (make some obvious mistakes)',
+                2: 'novice (play simply, avoid complex tactics)', 
+                3: 'amateur (basic tactics, some strategic understanding)',
+                4: 'intermediate (good tactical vision, developing strategy)',
+                5: 'advanced (strong tactics and positional play)',
+                6: 'expert (excellent tactical and strategic skills)',
+                7: 'master (deep understanding, complex planning)',
+                8: 'grandmaster (exceptional skill in all areas)',
+                9: 'super grandmaster (world-class level)',
+                10: 'engine-like (near perfect play)'
+            };
+
+            const prompt = `You are a chess master AI playing at ${difficultyDescriptions[difficulty]} level.
+
+Current position (FEN): ${boardFEN}
+It's ${currentPlayer}'s turn to move.
+
+Legal moves available: ${movesText}
+
+CHESS KNOWLEDGE BASE:
+- Checkmate: The enemy king is in check and cannot escape capture
+- Stalemate: The player has no legal moves but is not in check (draw)
+- Check: The king is under direct attack and must be moved or the attack blocked
+- Castling: King and rook special move (conditions: neither piece moved, no pieces between, king not in check)
+- En passant: Special pawn capture rule for pawns that moved two squares
+- Promotion: Pawns reaching the end rank must promote to Queen, Rook, Bishop, or Knight
+- Piece values: Pawn=1, Knight=3, Bishop=3, Rook=5, Queen=9, King=invaluable
+- Opening principles: Control center, develop pieces, castle early, don't move same piece twice
+- Middlegame: Tactical combinations, positional improvements, piece coordination
+- Endgame: King activity, pawn promotion, basic checkmate patterns
+
+As a ${difficultyDescriptions[difficulty]} player, analyze this position and choose the best move considering:
+
+PRIORITY ORDER:
+1. Checkmate in one move (if available) - ALWAYS play this
+2. Avoid being checkmated - defend against immediate threats
+3. Capture free material (undefended pieces)
+4. Create tactical threats (checks, attacks, pins, forks)
+5. Improve piece position and development
+6. Control center squares (e4, e5, d4, d5)
+7. Ensure king safety (castle if possible)
+8. Create long-term strategic advantages
+
+IMPORTANT: Always check if your move puts your own king in check - such moves are illegal.
+
+Please respond with ONLY the move in algebraic notation (like e2e4 or g1f3), followed by a brief explanation.`;
+
+            const response = await puter.ai.chat(prompt, {
+                model: 'claude',
+                stream: false
+            });
+
+            // Parse the move from the response
+            const selectedMove = this.parseMove(response, legalMoves);
+            return selectedMove || legalMoves[Math.floor(Math.random() * legalMoves.length)];
+
+        } catch (error) {
+            console.error('Error getting AI move:', error);
+            // Fallback to random move
+            return legalMoves[Math.floor(Math.random() * legalMoves.length)];
+        }
+    }
+
+    boardToFEN(board, currentPlayer) {
+        // Convert board array to FEN notation
+        let fen = '';
+        
+        for (let row = 0; row < 8; row++) {
+            let emptyCount = 0;
+            let rowStr = '';
+            
+            for (let col = 0; col < 8; col++) {
+                const piece = board[row][col];
+                if (piece === null) {
+                    emptyCount++;
+                } else {
+                    if (emptyCount > 0) {
+                        rowStr += emptyCount;
+                        emptyCount = 0;
+                    }
+                    rowStr += piece;
+                }
+            }
+            
+            if (emptyCount > 0) {
+                rowStr += emptyCount;
+            }
+            
+            fen += rowStr;
+            if (row < 7) fen += '/';
+        }
+        
+        // Add turn, castling, en passant, halfmove, fullmove (simplified)
+        fen += ` ${currentPlayer === 'white' ? 'w' : 'b'} - - 0 1`;
+        
+        return fen;
+    }
+
+    squareToAlgebraic(row, col) {
+        const files = 'abcdefgh';
+        const ranks = '87654321';
+        return files[col] + ranks[row];
+    }
+
+    parseEvaluation(response) {
+        // Extract numerical evaluation from AI response
+        const match = response.match(/-?\d+(\.\d+)?/);
+        if (match) {
+            let evaluation = parseFloat(match[0]);
+            // Clamp between -10 and 10
+            evaluation = Math.max(-10, Math.min(10, evaluation));
+            return evaluation;
+        }
+        return 0; // Default neutral evaluation
+    }
+
+    parseMove(response, legalMoves) {
+        // Extract move from AI response and match it to legal moves
+        const movePattern = /([a-h][1-8][a-h][1-8])/g;
+        const matches = response.match(movePattern);
+        
+        if (matches) {
+            for (const moveStr of matches) {
+                const fromSquare = moveStr.substring(0, 2);
+                const toSquare = moveStr.substring(2, 4);
+                
+                const fromCol = fromSquare.charCodeAt(0) - 97; // a=0, b=1, etc.
+                const fromRow = 8 - parseInt(fromSquare[1]); // 8=0, 7=1, etc.
+                const toCol = toSquare.charCodeAt(0) - 97;
+                const toRow = 8 - parseInt(toSquare[1]);
+                
+                // Find matching legal move
+                const move = legalMoves.find(m => 
+                    m.from.row === fromRow && m.from.col === fromCol &&
+                    m.to.row === toRow && m.to.col === toCol
+                );
+                
+                if (move) {
+                    return move;
+                }
+            }
+        }
+        
+        return null; // No valid move found
+    }
+
+    // Simple evaluation fallback
     evaluate() {
         return (Math.random() - 0.5) * 4;
     }
