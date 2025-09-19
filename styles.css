@@ -2233,4 +2233,46 @@ input, select, textarea {
 
 .modal-footer {
     display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    background: var(--light-color);
+    border-top: 1px solid var(--border-color);
+}
+
+/* Chess game specific styles */
+.square.selected {
+    background-color: rgba(255, 255, 0, 0.7) !important;
+    box-shadow: 0 0 0 3px rgba(255, 255, 0, 0.8);
+}
+
+.square.last-move {
+    background-color: rgba(255, 165, 0, 0.5) !important;
+}
+
+.game-status.in-check {
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+.game-status.game-over {
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.captured-piece {
+    display: inline-block;
+    font-size: 1.2em;
+    margin: 0 2px;
+    opacity: 0.7;
+}
+
+.move-entry {
+    padding: 4px 8px;
+    background: var(--light-color);
+    margin: 2px 0;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
     

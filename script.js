@@ -144,18 +144,66 @@ class ChessMasterPro {
 
     applySettings() {
         // Apply all saved settings
-        this.changeBoardTheme(this.settings.boardTheme);
-        this.changePieceSet(this.settings.pieceSet);
-        this.toggleCoordinates(this.settings.showCoordinates);
-        this.toggleLastMoveHighlight(this.settings.highlightLastMove);
-        this.toggleAnimations(this.settings.animatePieces);
-        this.toggleSounds(this.settings.playSounds);
-        this.changeAnimationSpeed(this.settings.moveSpeed);
+        if (this.changeBoardTheme) this.changeBoardTheme(this.settings.boardTheme);
+        if (this.changePieceSet) this.changePieceSet(this.settings.pieceSet);
+        if (this.toggleCoordinates) this.toggleCoordinates(this.settings.showCoordinates);
+        if (this.toggleLastMoveHighlight) this.toggleLastMoveHighlight(this.settings.highlightLastMove);
+        if (this.toggleAnimations) this.toggleAnimations(this.settings.animatePieces);
+        if (this.toggleSounds) this.toggleSounds(this.settings.playSounds);
+        if (this.changeAnimationSpeed) this.changeAnimationSpeed(this.settings.moveSpeed);
     }
 
     loadUserProfile() {
         const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
         this.profile.load(profile);
+    }
+
+    // Settings Methods
+    changeBoardTheme(theme = 'classic') {
+        this.settings.boardTheme = theme;
+        localStorage.setItem('boardTheme', theme);
+        // Apply theme to board if it exists
+        const board = document.getElementById('chessBoard');
+        if (board) {
+            board.className = `chess-board theme-${theme}`;
+        }
+    }
+
+    changePieceSet(pieceSet = 'classic') {
+        this.settings.pieceSet = pieceSet;
+        localStorage.setItem('pieceSet', pieceSet);
+    }
+
+    toggleCoordinates(show = true) {
+        this.settings.showCoordinates = show;
+        localStorage.setItem('showCoordinates', show.toString());
+        const coords = document.querySelector('.board-coords');
+        if (coords) {
+            coords.style.display = show ? 'block' : 'none';
+        }
+    }
+
+    toggleLastMoveHighlight(show = true) {
+        this.settings.highlightLastMove = show;
+        localStorage.setItem('highlightLastMove', show.toString());
+    }
+
+    toggleAnimations(enable = true) {
+        this.settings.animatePieces = enable;
+        localStorage.setItem('animatePieces', enable.toString());
+    }
+
+    toggleSounds(enable = true) {
+        this.settings.playSounds = enable;
+        localStorage.setItem('playSounds', enable.toString());
+        if (this.sounds) {
+            this.sounds.enabled = enable;
+        }
+    }
+
+    changeAnimationSpeed(speed = 3) {
+        this.settings.moveSpeed = speed;
+        localStorage.setItem('moveSpeed', speed.toString());
     }
 }
 
@@ -250,6 +298,14 @@ class ChessGame {
             square.classList.add('selected');
         }
 
+        // Highlight last move
+        if (this.lastMove) {
+            if ((this.lastMove.from.row === row && this.lastMove.from.col === col) ||
+                (this.lastMove.to.row === row && this.lastMove.to.col === col)) {
+                square.classList.add('last-move');
+            }
+        }
+
         return square;
     }
 
@@ -286,7 +342,9 @@ class ChessGame {
         if (piece && this.isPieceOwnedByCurrentPlayer(piece)) {
             this.selectedSquare = { row, col };
             this.renderBoard();
-            chessMaster.sounds.play('select');
+            if (window.chessMaster && window.chessMaster.sounds) {
+                window.chessMaster.sounds.play('select');
+            }
         } else {
             this.deselectSquare();
         }
@@ -297,7 +355,9 @@ class ChessGame {
         const move = legalMoves.find(m => m.row === toRow && m.col === toCol);
         
         if (!move) {
-            chessMaster.sounds.play('illegal');
+            if (window.chessMaster && window.chessMaster.sounds) {
+                window.chessMaster.sounds.play('illegal');
+            }
             return false;
         }
         
@@ -309,8 +369,19 @@ class ChessGame {
         const piece = this.board[fromRow][fromCol];
         const capturedPiece = this.board[toRow][toCol];
         
+        // Check for pawn promotion
+        let finalPiece = piece;
+        if (piece && piece.toLowerCase() === 'p') {
+            const isWhite = this.isPieceWhite(piece);
+            const promotionRow = isWhite ? 0 : 7;
+            if (toRow === promotionRow) {
+                // Auto-promote to queen for now (can be enhanced later)
+                finalPiece = isWhite ? 'Q' : 'q';
+            }
+        }
+        
         // Execute move
-        this.board[toRow][toCol] = promotion || piece;
+        this.board[toRow][toCol] = promotion || finalPiece;
         this.board[fromRow][fromCol] = null;
         
         // Handle captured pieces
@@ -319,17 +390,27 @@ class ChessGame {
             this.capturedPieces[capturedColor].push(capturedPiece);
         }
         
+        // Store last move for highlighting
+        this.lastMove = { from: { row: fromRow, col: fromCol }, to: { row: toRow, col: toCol } };
+        
         // Update game state
         this.moveCount++;
         this.currentPlayer = this.currentPlayer === 'white' ? 'black' : 'white';
         
+        // Check for game over conditions
+        if (this.isGameOver()) {
+            this.gameState = this.isKingInCheckmate(this.currentPlayer) ? 'checkmate' : 'stalemate';
+        }
+        
         // AI move if needed
-        if (this.gameMode === 'ai' && this.currentPlayer === 'black') {
+        if (this.gameMode === 'ai' && this.currentPlayer === 'black' && this.gameState === 'playing') {
             setTimeout(() => this.makeAIMove(), 500);
         }
         
         // Play sound and update display
-        chessMaster.sounds.play(capturedPiece ? 'capture' : 'move');
+        if (window.chessMaster && window.chessMaster.sounds) {
+            window.chessMaster.sounds.play(capturedPiece ? 'capture' : 'move');
+        }
         this.renderBoard();
     }
 
@@ -357,10 +438,16 @@ class ChessGame {
         const piece = this.board[row][col];
         const isWhite = this.isPieceWhite(piece);
         const direction = isWhite ? -1 : 1;
+        const startRow = isWhite ? 6 : 1;
         
         // Forward moves
         if (this.isValidSquare(row + direction, col) && !this.board[row + direction][col]) {
             moves.push({ row: row + direction, col });
+            
+            // Double move from starting position
+            if (row === startRow && this.isValidSquare(row + 2 * direction, col) && !this.board[row + 2 * direction][col]) {
+                moves.push({ row: row + 2 * direction, col });
+            }
         }
         
         // Captures
@@ -695,8 +782,70 @@ class ChessGame {
             this.board = this.initializeBoard();
             this.moveCount = 0;
             this.currentPlayer = 'white';
+            this.gameState = 'playing';
+            this.capturedPieces = { white: [], black: [] };
+            this.lastMove = null;
             this.renderBoard();
         }
+    }
+
+    isGameOver() {
+        return this.getAllLegalMoves(this.currentPlayer).length === 0;
+    }
+
+    isKingInCheckmate(color) {
+        const kingPos = this.findKing(color);
+        if (!kingPos) return false;
+        
+        return this.isSquareUnderAttack(kingPos.row, kingPos.col, color) && 
+               this.getAllLegalMoves(color).length === 0;
+    }
+
+    findKing(color) {
+        const kingPiece = color === 'white' ? 'K' : 'k';
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                if (this.board[row][col] === kingPiece) {
+                    return { row, col };
+                }
+            }
+        }
+        return null;
+    }
+
+    isSquareUnderAttack(row, col, defendingColor) {
+        const attackingColor = defendingColor === 'white' ? 'black' : 'white';
+        
+        for (let r = 0; r < 8; r++) {
+            for (let c = 0; c < 8; c++) {
+                const piece = this.board[r][c];
+                if (piece && ((attackingColor === 'white' && this.isPieceWhite(piece)) || 
+                             (attackingColor === 'black' && !this.isPieceWhite(piece)))) {
+                    const moves = this.getPieceMoves(r, c, piece);
+                    if (moves.some(move => move.row === row && move.col === col)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    getPieceMoves(row, col, piece) {
+        // Similar to getLegalMoves but without current player restriction
+        let moves = [];
+        const pieceType = piece.toLowerCase();
+        
+        switch (pieceType) {
+            case 'p': moves = this.getPawnMoves(row, col); break;
+            case 'r': moves = this.getRookMoves(row, col); break;
+            case 'n': moves = this.getKnightMoves(row, col); break;
+            case 'b': moves = this.getBishopMoves(row, col); break;
+            case 'q': moves = this.getQueenMoves(row, col); break;
+            case 'k': moves = this.getKingMoves(row, col); break;
+        }
+        
+        return moves;
     }
 
     deselectSquare() {
@@ -705,15 +854,54 @@ class ChessGame {
     }
 
     updateGameStatus() {
-        // Simplified status update
+        const statusElement = document.getElementById('gameStatus');
+        if (!statusElement) return;
+
+        if (this.gameState === 'checkmate') {
+            const winner = this.currentPlayer === 'white' ? 'Black' : 'White';
+            statusElement.textContent = `Checkmate! ${winner} wins!`;
+            statusElement.className = 'game-status game-over';
+        } else if (this.gameState === 'stalemate') {
+            statusElement.textContent = 'Stalemate! It\'s a draw!';
+            statusElement.className = 'game-status game-over';
+        } else {
+            const kingPos = this.findKing(this.currentPlayer);
+            const inCheck = kingPos && this.isSquareUnderAttack(kingPos.row, kingPos.col, this.currentPlayer);
+            const checkText = inCheck ? ' (Check!)' : '';
+            statusElement.textContent = `${this.currentPlayer.charAt(0).toUpperCase() + this.currentPlayer.slice(1)} to move${checkText}`;
+            statusElement.className = inCheck ? 'game-status in-check' : 'game-status';
+        }
     }
 
     updateCapturedPieces() {
-        // Simplified captured pieces update
+        const capturedWhiteElement = document.getElementById('capturedWhite');
+        const capturedBlackElement = document.getElementById('capturedBlack');
+        
+        if (capturedWhiteElement) {
+            capturedWhiteElement.innerHTML = '';
+            this.capturedPieces.white.forEach(piece => {
+                const pieceElement = this.createPieceElement(piece);
+                pieceElement.className = 'captured-piece';
+                capturedWhiteElement.appendChild(pieceElement);
+            });
+        }
+        
+        if (capturedBlackElement) {
+            capturedBlackElement.innerHTML = '';
+            this.capturedPieces.black.forEach(piece => {
+                const pieceElement = this.createPieceElement(piece);
+                pieceElement.className = 'captured-piece';
+                capturedBlackElement.appendChild(pieceElement);
+            });
+        }
     }
 
     updateMoveHistory() {
-        // Simplified move history update
+        const movesContainer = document.getElementById('movesContainer');
+        if (!movesContainer) return;
+        
+        // For now, just show move count
+        movesContainer.innerHTML = `<div class="move-entry">Move ${Math.ceil(this.moveCount / 2)}</div>`;
     }
 }
 
@@ -801,7 +989,9 @@ function showSection(sectionName) {
     
     document.querySelector(`[onclick="showSection('${sectionName}')"]`)?.classList.add('active');
     
-    chessMaster.currentSection = sectionName;
+    if (window.chessMaster) {
+        window.chessMaster.currentSection = sectionName;
+    }
 }
 
 function toggleMobileMenu() {
@@ -828,15 +1018,17 @@ function confirmGameStart() {
     closeModal('gameSetupModal');
     
     // Initialize game
-    chessMaster.game = new ChessGame();
-    chessMaster.game.gameMode = window.selectedGameMode;
-    chessMaster.game.aiLevel = aiDifficulty;
-    
-    // Show game interface
-    document.querySelector('.game-modes').style.display = 'none';
-    document.getElementById('gameContainer').style.display = 'grid';
-    
-    chessMaster.game.renderBoard();
+    if (window.chessMaster) {
+        window.chessMaster.game = new ChessGame();
+        window.chessMaster.game.gameMode = window.selectedGameMode;
+        window.chessMaster.game.aiLevel = aiDifficulty;
+        
+        // Show game interface
+        document.querySelector('.game-modes').style.display = 'none';
+        document.getElementById('gameContainer').style.display = 'grid';
+        
+        window.chessMaster.game.renderBoard();
+    }
 }
 
 function closeModal(modalId) {
@@ -848,11 +1040,15 @@ function selectPromotion(piece) {
 }
 
 function flipBoard() {
-    chessMaster.game?.flipBoard();
+    if (window.chessMaster && window.chessMaster.game) {
+        window.chessMaster.game.flipBoard();
+    }
 }
 
 function undoMove() {
-    chessMaster.game?.undoMove();
+    if (window.chessMaster && window.chessMaster.game) {
+        window.chessMaster.game.undoMove();
+    }
 }
 
 function offerDraw() {
@@ -868,7 +1064,9 @@ function resign() {
 }
 
 function startNewGame() {
-    startGame(chessMaster.game.gameMode);
+    if (window.chessMaster && window.chessMaster.game) {
+        startGame(window.chessMaster.game.gameMode);
+    }
 }
 
 function analyzeGame() {
@@ -917,5 +1115,6 @@ function saveSettings() {}
 let chessMaster;
 document.addEventListener('DOMContentLoaded', () => {
     chessMaster = new ChessMasterPro();
+    window.chessMaster = chessMaster; // Make it globally accessible
     console.log('Chess Master Pro initialized successfully!');
 });
