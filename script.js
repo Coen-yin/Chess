@@ -269,6 +269,17 @@ class ChessGame {
             }
         }
 
+        // Show legal moves for selected piece after board is rendered
+        if (this.selectedSquare && document.getElementById('showLegalMoves')?.checked) {
+            const legalMoves = this.getLegalMoves(this.selectedSquare.row, this.selectedSquare.col);
+            legalMoves.forEach(move => {
+                const targetSquare = boardElement.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                if (targetSquare) {
+                    targetSquare.classList.add('legal-move');
+                }
+            });
+        }
+
         this.updateGameStatus();
         this.updateCapturedPieces();
         this.updateMoveHistory();
@@ -402,9 +413,13 @@ class ChessGame {
             this.gameState = this.isKingInCheckmate(this.currentPlayer) ? 'checkmate' : 'stalemate';
         }
         
-        // AI move if needed
+        // AI move if needed with improved timing
         if (this.gameMode === 'ai' && this.currentPlayer === 'black' && this.gameState === 'playing') {
-            setTimeout(() => this.makeAIMove(), 500);
+            // Variable delay based on AI level for more realistic thinking time
+            const thinkingTime = this.aiLevel <= 3 ? 300 + Math.random() * 200 : // Fast for beginners
+                                 this.aiLevel <= 6 ? 600 + Math.random() * 400 : // Medium for intermediate
+                                 1000 + Math.random() * 800; // Longer for advanced
+            setTimeout(() => this.makeAIMove(), thinkingTime);
         }
         
         // Play sound and update display
@@ -619,21 +634,36 @@ class ChessGame {
     }
 
     getOpeningMove() {
-        // Simple opening book for stronger AI
-        const openingMoves = [
-            // King's Pawn openings
-            { from: { row: 1, col: 4 }, to: { row: 3, col: 4 } }, // e4
-            { from: { row: 1, col: 3 }, to: { row: 3, col: 3 } }, // d4
-            // Knight developments
-            { from: { row: 0, col: 6 }, to: { row: 2, col: 5 } }, // Nf6
-            { from: { row: 0, col: 1 }, to: { row: 2, col: 2 } }, // Nc6
-        ];
+        // Enhanced opening book with better moves
+        const openingMoves = [];
+        
+        // First move options for black
+        if (this.moveCount === 1) {
+            // Respond to e4 with e5 or c5 (Sicilian)
+            if (this.board[4][4] === 'P') { // White played e4
+                openingMoves.push({ from: { row: 1, col: 4 }, to: { row: 3, col: 4 } }); // e5
+                openingMoves.push({ from: { row: 1, col: 2 }, to: { row: 3, col: 2 } }); // c5
+            }
+            // Respond to d4 with d5 or Nf6
+            else if (this.board[4][3] === 'P') { // White played d4
+                openingMoves.push({ from: { row: 1, col: 3 }, to: { row: 3, col: 3 } }); // d5
+                openingMoves.push({ from: { row: 0, col: 6 }, to: { row: 2, col: 5 } }); // Nf6
+            }
+        }
+        
+        // Second move for black
+        if (this.moveCount === 3) {
+            // Develop knights
+            openingMoves.push({ from: { row: 0, col: 1 }, to: { row: 2, col: 2 } }); // Nc6
+            openingMoves.push({ from: { row: 0, col: 6 }, to: { row: 2, col: 5 } }); // Nf6
+        }
         
         // Filter valid moves
         const validOpeningMoves = openingMoves.filter(move => {
             const piece = this.board[move.from.row][move.from.col];
             return piece && !this.isPieceWhite(piece) && 
-                   !this.board[move.to.row][move.to.col];
+                   !this.board[move.to.row][move.to.col] &&
+                   this.isValidSquare(move.to.row, move.to.col);
         });
         
         if (validOpeningMoves.length > 0) {
@@ -692,11 +722,77 @@ class ChessGame {
             }
         }
         
+        // Encourage piece development in opening
+        if (this.moveCount < 20) {
+            score += this.evaluateDevelopment();
+        }
+        
+        // King safety evaluation
+        score += this.evaluateKingSafety();
+        
         // Add randomness based on AI difficulty level for realistic play
         const randomFactor = this.getRandomnessFactor();
         const randomAdjustment = (Math.random() - 0.5) * randomFactor;
         
         return score + randomAdjustment;
+    }
+    
+    evaluateDevelopment() {
+        let developmentScore = 0;
+        
+        // Encourage knight development
+        const blackKnights = [this.board[0][1], this.board[0][6]];
+        blackKnights.forEach((knight, index) => {
+            if (!knight) {
+                developmentScore += 10; // Knight was developed
+            }
+        });
+        
+        // Encourage bishop development  
+        const blackBishops = [this.board[0][2], this.board[0][5]];
+        blackBishops.forEach((bishop, index) => {
+            if (!bishop) {
+                developmentScore += 10; // Bishop was developed
+            }
+        });
+        
+        return developmentScore;
+    }
+    
+    evaluateKingSafety() {
+        let safetyScore = 0;
+        
+        // Find kings
+        const blackKing = this.findKing('black');
+        const whiteKing = this.findKing('white');
+        
+        if (blackKing) {
+            // Prefer castled position or safe king placement
+            if (blackKing.col >= 5 || blackKing.col <= 2) {
+                safetyScore += 15; // King in relatively safe position
+            }
+        }
+        
+        if (whiteKing) {
+            // Penalize exposed white king
+            if (whiteKing.col >= 5 || whiteKing.col <= 2) {
+                safetyScore -= 15; // Penalize safe white king
+            }
+        }
+        
+        return safetyScore;
+    }
+    
+    findKing(color) {
+        const kingPiece = color === 'white' ? 'K' : 'k';
+        for (let row = 0; row < 8; row++) {
+            for (let col = 0; col < 8; col++) {
+                if (this.board[row][col] === kingPiece) {
+                    return { row, col };
+                }
+            }
+        }
+        return null;
     }
 
     getPositionalValue(piece, row, col) {
@@ -900,8 +996,22 @@ class ChessGame {
         const movesContainer = document.getElementById('movesContainer');
         if (!movesContainer) return;
         
-        // For now, just show move count
-        movesContainer.innerHTML = `<div class="move-entry">Move ${Math.ceil(this.moveCount / 2)}</div>`;
+        // Show the actual move count properly
+        const moveNumber = Math.ceil(this.moveCount / 2);
+        let moveText = `<div class="move-entry">Move ${moveNumber}</div>`;
+        
+        // Add last move notation if available
+        if (this.lastMove) {
+            const piece = this.board[this.lastMove.to.row][this.lastMove.to.col];
+            if (piece) {
+                const from = String.fromCharCode(97 + this.lastMove.from.col) + (8 - this.lastMove.from.row);
+                const to = String.fromCharCode(97 + this.lastMove.to.col) + (8 - this.lastMove.to.row);
+                const pieceSymbol = piece.toUpperCase() === 'P' ? '' : piece.toUpperCase();
+                moveText += `<div class="last-move-notation">${pieceSymbol}${from}-${to}</div>`;
+            }
+        }
+        
+        movesContainer.innerHTML = moveText;
     }
 }
 

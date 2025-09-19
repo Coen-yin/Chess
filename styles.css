@@ -841,15 +841,16 @@ input, select, textarea {
 .square.legal-move::after {
     content: '';
     position: absolute;
-    width: 18px;
-    height: 18px;
-    background: rgba(74, 144, 226, 0.7);
+    width: 20px;
+    height: 20px;
+    background: rgba(74, 144, 226, 0.8);
     border-radius: 50%;
     pointer-events: none;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     animation: legalMovePulse 2s infinite;
+    border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .square.legal-capture {
