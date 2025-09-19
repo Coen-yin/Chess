@@ -412,6 +412,7 @@ class ChessGame {
         // Check for game over conditions
         if (this.isGameOver()) {
             this.gameState = this.isKingInCheckmate(this.currentPlayer) ? 'checkmate' : 'stalemate';
+            this.showGameOverModal();
         }
         
         // AI move if needed with improved timing
@@ -819,6 +820,25 @@ class ChessGame {
         
         movesContainer.innerHTML = moveText;
     }
+
+    showGameOverModal() {
+        const modal = document.getElementById('gameOverModal');
+        if (!modal) return;
+
+        const resultElement = document.getElementById('gameResult');
+        const messageElement = document.getElementById('gameResultMessage');
+
+        if (this.gameState === 'checkmate') {
+            const winner = this.currentPlayer === 'white' ? 'Black' : 'White';
+            if (resultElement) resultElement.textContent = `${winner} Wins!`;
+            if (messageElement) messageElement.textContent = `Checkmate! The ${this.currentPlayer} king has been captured.`;
+        } else if (this.gameState === 'stalemate') {
+            if (resultElement) resultElement.textContent = 'Draw';
+            if (messageElement) messageElement.textContent = 'Stalemate! No legal moves available but the king is not in check.';
+        }
+
+        modal.classList.add('show');
+    }
 }
 
 // Simple implementations for other managers
@@ -875,18 +895,48 @@ class PuterAI {
             const boardFEN = this.boardToFEN(boardState, currentPlayer);
             const prompt = `As a chess master, analyze this position in FEN notation: ${boardFEN}
 
-Current position analysis needed:
-- Evaluate the position from ${currentPlayer}'s perspective 
-- Consider piece values, position, tactics, and strategy
-- Rate the position from -10 (very bad for ${currentPlayer}) to +10 (very good for ${currentPlayer})
-- Focus on concrete evaluation factors like:
-  * Material balance
-  * King safety  
-  * Piece activity and development
-  * Pawn structure
-  * Tactical opportunities
+COMPREHENSIVE CHESS ANALYSIS REQUIRED:
 
-Please respond with just a numerical evaluation between -10 and +10, followed by a brief explanation.`;
+Position Details:
+- Current player to move: ${currentPlayer}
+- FEN: ${boardFEN}
+
+Analyze for:
+1. IMMEDIATE THREATS:
+   - Is the current player in check?
+   - Are there checkmate threats in 1-2 moves?
+   - Any pieces under attack (hanging pieces)?
+
+2. MATERIAL BALANCE:
+   - Count all pieces: Pawns (1pt), Knights/Bishops (3pts), Rooks (5pts), Queen (9pts)
+   - Who has material advantage?
+
+3. POSITIONAL FACTORS:
+   - King safety (castled, exposed, etc.)
+   - Piece development and activity
+   - Pawn structure (doubled, isolated, passed pawns)
+   - Control of center squares (e4, e5, d4, d5)
+
+4. TACTICAL OPPORTUNITIES:
+   - Pins, forks, skewers, discovered attacks
+   - Sacrificial possibilities
+   - Back-rank weaknesses
+
+5. STRATEGIC ASSESSMENT:
+   - Opening phase: Are pieces developing properly?
+   - Middlegame: Piece coordination and plans
+   - Endgame: King activity and pawn promotion potential
+
+EVALUATION SCALE: 
+Rate from ${currentPlayer}'s perspective: -10 (very bad) to +10 (very good)
+- Checkmate for ${currentPlayer} = +10
+- Checkmate against ${currentPlayer} = -10
+- Major material advantage = +5 to +7
+- Small positional advantage = +1 to +3
+- Equal position = 0
+- Small disadvantage = -1 to -3
+
+Respond with: [NUMERICAL SCORE] followed by detailed explanation.`;
 
             const response = await puter.ai.chat(prompt, {
                 model: 'claude',
@@ -929,21 +979,40 @@ Please respond with just a numerical evaluation between -10 and +10, followed by
                 10: 'engine-like (near perfect play)'
             };
 
-            const prompt = `You are a chess engine playing at ${difficultyDescriptions[difficulty]} level.
+            const prompt = `You are a chess master AI playing at ${difficultyDescriptions[difficulty]} level.
 
 Current position (FEN): ${boardFEN}
 It's ${currentPlayer}'s turn to move.
 
 Legal moves available: ${movesText}
 
-As a ${difficultyDescriptions[difficulty]} player, choose the best move from the available options. Consider:
-- Tactical opportunities (captures, checks, threats)
-- Positional factors (piece development, center control, king safety)
-- Strategic plans appropriate for this skill level
-- Opening principles if in opening phase
-- Endgame technique if in endgame
+CHESS KNOWLEDGE BASE:
+- Checkmate: The enemy king is in check and cannot escape capture
+- Stalemate: The player has no legal moves but is not in check (draw)
+- Check: The king is under direct attack and must be moved or the attack blocked
+- Castling: King and rook special move (conditions: neither piece moved, no pieces between, king not in check)
+- En passant: Special pawn capture rule for pawns that moved two squares
+- Promotion: Pawns reaching the end rank must promote to Queen, Rook, Bishop, or Knight
+- Piece values: Pawn=1, Knight=3, Bishop=3, Rook=5, Queen=9, King=invaluable
+- Opening principles: Control center, develop pieces, castle early, don't move same piece twice
+- Middlegame: Tactical combinations, positional improvements, piece coordination
+- Endgame: King activity, pawn promotion, basic checkmate patterns
 
-Please respond with just the move in algebraic notation (like e2e4 or Ng1f3), followed by a brief explanation of why this move is good at this skill level.`;
+As a ${difficultyDescriptions[difficulty]} player, analyze this position and choose the best move considering:
+
+PRIORITY ORDER:
+1. Checkmate in one move (if available) - ALWAYS play this
+2. Avoid being checkmated - defend against immediate threats
+3. Capture free material (undefended pieces)
+4. Create tactical threats (checks, attacks, pins, forks)
+5. Improve piece position and development
+6. Control center squares (e4, e5, d4, d5)
+7. Ensure king safety (castle if possible)
+8. Create long-term strategic advantages
+
+IMPORTANT: Always check if your move puts your own king in check - such moves are illegal.
+
+Please respond with ONLY the move in algebraic notation (like e2e4 or g1f3), followed by a brief explanation.`;
 
             const response = await puter.ai.chat(prompt, {
                 model: 'claude',
