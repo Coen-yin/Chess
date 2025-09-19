@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChessMaster Pro - Ultimate Chess Experience</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-chess-king"></i>
+                <span>ChessMaster Pro</span>
+            </div>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="#" onclick="showSection('home')" class="nav-link active">Home</a></li>
+                <li><a href="#" onclick="showSection('play')" class="nav-link">Play</a></li>
+                <li><a href="#" onclick="showSection('learn')" class="nav-link">Learn</a></li>
+                <li><a href="#" onclick="showSection('puzzles')" class="nav-link">Puzzles</a></li>
+                <li><a href="#" onclick="showSection('analysis')" class="nav-link">Analysis</a></li>
+                <li><a href="#" onclick="showSection('profile')" class="nav-link">Profile</a></li>
+            </ul>
+            <div class="hamburger" onclick="toggleMobileMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Home Section -->
+        <section id="home" class="section active">
+            <div class="hero">
+                <div class="hero-content">
+                    <h1>Master Chess Like Never Before</h1>
+                    <p>Experience the ultimate chess platform with AI opponents, interactive tutorials, daily puzzles, and advanced analysis tools. Perfect for beginners and grandmasters alike.</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary" onclick="startQuickGame()">
+                            <i class="fas fa-play"></i> Quick Play
+                        </button>
+                        <button class="btn btn-secondary" onclick="showSection('learn')">
+                            <i class="fas fa-graduation-cap"></i> Learn Chess
+                        </button>
+                    </div>
+                </div>
+                <div class="hero-chess">
+                    <div class="demo-board" id="demoBoard"></div>
+                </div>
+            </div>
+
+            <div class="features">
+                <h2>Why Choose ChessMaster Pro?</h2>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <h3>Smart AI Opponents</h3>
+                        <p>Challenge AI with 10 difficulty levels from beginner (600 ELO) to grandmaster (2800+ ELO)</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h3>Interactive Learning</h3>
+                        <p>Master chess with step-by-step tutorials, opening guides, and tactical training</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </div>
+                        <h3>Daily Puzzles</h3>
+                        <p>Solve thousands of chess puzzles to improve your tactical vision and pattern recognition</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h3>Advanced Analysis</h3>
+                        <p>Analyze games with powerful chess engine, get move suggestions and positional insights</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Play Section -->
+        <section id="play" class="section">
+            <div class="play-header">
+                <h2>Choose Your Game Mode</h2>
+                <div class="game-modes">
+                    <div class="mode-card" onclick="startGame('ai')">
+                        <i class="fas fa-robot"></i>
+                        <h3>vs Computer</h3>
+                        <p>Challenge AI opponents</p>
+                    </div>
+                    <div class="mode-card" onclick="startGame('human')">
+                        <i class="fas fa-users"></i>
+                        <h3>vs Human</h3>
+                        <p>Local multiplayer</p>
+                    </div>
+                    <div class="mode-card" onclick="startGame('online')">
+                        <i class="fas fa-globe"></i>
+                        <h3>Online Match</h3>
+                        <p>Find opponents worldwide</p>
+                    </div>
+                    <div class="mode-card" onclick="showSection('puzzles')">
+                        <i class="fas fa-trophy"></i>
+                        <h3>Training</h3>
+                        <p>Solve puzzles & improve</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Interface -->
+            <div class="game-container" id="gameContainer" style="display: none;">
+                <div class="game-sidebar">
+                    <div class="players-info">
+                        <div class="player black-player">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%23333'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-family='Arial'%3E♚%3C/text%3E%3C/svg%3E" alt="Player 2" class="player-avatar">
+                            <div class="player-details">
+                                <span class="player-name" id="player2Name">Computer</span>
+                                <span class="player-rating" id="player2Rating">1500</span>
+                            </div>
+                            <div class="timer" id="blackTimer">10:00</div>
+                        </div>
+                        <div class="vs-indicator">VS</div>
+                        <div class="player white-player">
+                            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%234a90e2'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-family='Arial'%3E♔%3C/text%3E%3C/svg%3E" alt="Player 1" class="player-avatar">
+                            <div class="player-details">
+                                <span class="player-name" id="player1Name">You</span>
+                                <span class="player-rating" id="player1Rating">1200</span>
+                            </div>
+                            <div class="timer" id="whiteTimer">10:00</div>
+                        </div>
+                    </div>
+
+                    <div class="game-controls">
+                        <button class="btn btn-icon" onclick="undoMove()" title="Undo Move">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="offerDraw()" title="Offer Draw">
+                            <i class="fas fa-handshake"></i>
+                        </button>
+                        <button class="btn btn-icon btn-danger" onclick="resign()" title="Resign">
+                            <i class="fas fa-flag"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="flipBoard()" title="Flip Board">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+
+                    <div class="move-history">
+                        <h4>Move History</h4>
+                        <div class="moves-container" id="movesContainer"></div>
+                    </div>
+
+                    <div class="captured-pieces">
+                        <div class="captured-section">
+                            <h5>Captured by White</h5>
+                            <div class="captured-list" id="capturedBlack"></div>
+                        </div>
+                        <div class="captured-section">
+                            <h5>Captured by Black</h5>
+                            <div class="captured-list" id="capturedWhite"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="board-section">
+                    <div class="game-status" id="gameStatus">White to move</div>
+                    <div class="chess-board" id="chessBoard"></div>
+                    <div class="board-coords">
+                        <div class="files">a b c d e f g h</div>
+                        <div class="ranks">8 7 6 5 4 3 2 1</div>
+                    </div>
+                </div>
+
+                <div class="analysis-panel">
+                    <div class="evaluation">
+                        <h4>Position Evaluation</h4>
+                        <div class="eval-bar">
+                            <div class="eval-white" id="evalWhite"></div>
+                            <div class="eval-black" id="evalBlack"></div>
+                        </div>
+                        <div class="eval-score" id="evalScore">+0.0</div>
+                    </div>
+
+                    <div class="best-moves">
+                        <h4>Best Moves</h4>
+                        <div class="moves-list" id="bestMoves"></div>
+                    </div>
+
+                    <div class="game-settings">
+                        <h4>Settings</h4>
+                        <div class="setting">
+                            <label>
+                                <input type="checkbox" id="showLegalMoves" checked>
+                                Show Legal Moves
+                            </label>
+                        </div>
+                        <div class="setting">
+                            <label>
+                                <input type="checkbox" id="soundEffects" checked>
+                                Sound Effects
+                            </label>
+                        </div>
+                        <div class="setting">
+                            <label>
+                                <input type="checkbox" id="autoQueen" checked>
+                                Auto-promote to Queen
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Learn Section -->
+        <section id="learn" class="section">
+            <div class="learn-header">
+                <h2>Master Chess Step by Step</h2>
+                <p>From complete beginner to advanced player - our interactive lessons will guide you</p>
+            </div>
+
+            <div class="learning-path">
+                <div class="lesson-category">
+                    <div class="category-header" onclick="toggleCategory('basics')">
+                        <i class="fas fa-play-circle"></i>
+                        <h3>Chess Basics</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="lessons-list" id="basics">
+                        <div class="lesson" onclick="startLesson('board-setup')">
+                            <i class="fas fa-chess-board"></i>
+                            <div class="lesson-content">
+                                <h4>Board Setup & Notation</h4>
+                                <p>Learn the chess board, piece placement, and algebraic notation</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                        <div class="lesson" onclick="startLesson('piece-movement')">
+                            <i class="fas fa-chess-knight"></i>
+                            <div class="lesson-content">
+                                <h4>How Pieces Move</h4>
+                                <p>Master the movement patterns of all chess pieces</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                        <div class="lesson" onclick="startLesson('special-moves')">
+                            <i class="fas fa-magic"></i>
+                            <div class="lesson-content">
+                                <h4>Special Moves</h4>
+                                <p>Castling, en passant, and pawn promotion explained</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lesson-category">
+                    <div class="category-header" onclick="toggleCategory('strategy')">
+                        <i class="fas fa-lightbulb"></i>
+                        <h3>Strategy & Tactics</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="lessons-list" id="strategy">
+                        <div class="lesson" onclick="startLesson('opening-principles')">
+                            <i class="fas fa-play"></i>
+                            <div class="lesson-content">
+                                <h4>Opening Principles</h4>
+                                <p>Control the center, develop pieces, and castle early</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                        <div class="lesson" onclick="startLesson('tactical-motifs')">
+                            <i class="fas fa-crosshairs"></i>
+                            <div class="lesson-content">
+                                <h4>Tactical Motifs</h4>
+                                <p>Pins, forks, skewers, and discovered attacks</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                        <div class="lesson" onclick="startLesson('endgame-basics')">
+                            <i class="fas fa-chess-king"></i>
+                            <div class="lesson-content">
+                                <h4>Basic Endgames</h4>
+                                <p>Essential checkmate patterns and endgame techniques</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lesson-category">
+                    <div class="category-header" onclick="toggleCategory('advanced')">
+                        <i class="fas fa-crown"></i>
+                        <h3>Advanced Concepts</h3>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                    <div class="lessons-list" id="advanced">
+                        <div class="lesson" onclick="startLesson('positional-play')">
+                            <i class="fas fa-chess-rook"></i>
+                            <div class="lesson-content">
+                                <h4>Positional Understanding</h4>
+                                <p>Pawn structure, piece coordination, and strategic planning</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                        <div class="lesson" onclick="startLesson('complex-tactics')">
+                            <i class="fas fa-brain"></i>
+                            <div class="lesson-content">
+                                <h4>Complex Tactics</h4>
+                                <p>Deflection, interference, and multi-move combinations</p>
+                            </div>
+                            <div class="lesson-progress">0%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Lesson Board -->
+            <div class="lesson-interface" id="lessonInterface" style="display: none;">
+                <div class="lesson-content-area">
+                    <button class="btn btn-secondary back-btn" onclick="exitLesson()">
+                        <i class="fas fa-arrow-left"></i> Back to Lessons
+                    </button>
+                    <div class="lesson-info">
+                        <h3 id="lessonTitle">Chess Lesson</h3>
+                        <div class="lesson-progress-bar">
+                            <div class="progress-fill" id="lessonProgressFill"></div>
+                        </div>
+                        <p id="lessonStep">Step 1 of 5</p>
+                    </div>
+                    <div class="interactive-board" id="lessonBoard"></div>
+                    <div class="lesson-controls">
+                        <button class="btn btn-secondary" onclick="previousLessonStep()" id="prevBtn">
+                            <i class="fas fa-chevron-left"></i> Previous
+                        </button>
+                        <button class="btn btn-primary" onclick="nextLessonStep()" id="nextBtn">
+                            Next <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="lesson-explanation">
+                    <h4 id="stepTitle">Welcome to Chess!</h4>
+                    <div id="stepContent">
+                        <p>Let's start learning the wonderful game of chess. Click "Next" to begin your journey!</p>
+                    </div>
+                    <div class="lesson-tips" id="lessonTips"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Puzzles Section -->
+        <section id="puzzles" class="section">
+            <div class="puzzles-header">
+                <h2>Chess Puzzles</h2>
+                <div class="puzzle-stats">
+                    <div class="stat">
+                        <span class="stat-number" id="puzzlesSolved">0</span>
+                        <span class="stat-label">Solved Today</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="puzzleRating">1200</span>
+                        <span class="stat-label">Puzzle Rating</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-number" id="successRate">0%</span>
+                        <span class="stat-label">Success Rate</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="puzzle-container">
+                <div class="puzzle-info">
+                    <h3 id="puzzleTitle">Daily Puzzle #1</h3>
+                    <div class="puzzle-meta">
+                        <span class="puzzle-rating" id="currentPuzzleRating">★★★ (1450)</span>
+                        <span class="puzzle-theme" id="puzzleTheme">Tactical - Fork</span>
+                    </div>
+                    <div class="puzzle-instruction" id="puzzleInstruction">
+                        White to move and win material
+                    </div>
+                </div>
+
+                <div class="puzzle-interface">
+                    <div class="puzzle-board-container">
+                        <div class="puzzle-board" id="puzzleBoard"></div>
+                        <div class="puzzle-controls">
+                            <button class="btn btn-secondary" onclick="showPuzzleHint()" id="hintBtn">
+                                <i class="fas fa-lightbulb"></i> Hint
+                            </button>
+                            <button class="btn btn-secondary" onclick="resetPuzzle()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                            <button class="btn btn-primary" onclick="nextPuzzle()">
+                                <i class="fas fa-forward"></i> Next Puzzle
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="puzzle-sidebar">
+                        <div class="puzzle-solution" id="puzzleSolution" style="display: none;">
+                            <h4>Solution</h4>
+                            <div class="solution-moves" id="solutionMoves"></div>
+                            <div class="solution-explanation" id="solutionExplanation"></div>
+                        </div>
+
+                        <div class="puzzle-categories">
+                            <h4>Categories</h4>
+                            <div class="category-filters">
+                                <button class="filter-btn active" onclick="filterPuzzles('all')">All</button>
+                                <button class="filter-btn" onclick="filterPuzzles('tactics')">Tactics</button>
+                                <button class="filter-btn" onclick="filterPuzzles('endgame')">Endgame</button>
+                                <button class="filter-btn" onclick="filterPuzzles('opening')">Opening</button>
+                                <button class="filter-btn" onclick="filterPuzzles('checkmate')">Checkmate</button>
+                            </div>
+                        </div>
+
+                        <div class="puzzle-hint" id="puzzleHint" style="display: none;">
+                            <h4><i class="fas fa-lightbulb"></i> Hint</h4>
+                            <p id="hintText">Look for a move that attacks two pieces at once!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Analysis Section -->
+        <section id="analysis" class="section">
+            <div class="analysis-header">
+                <h2>Game Analysis Center</h2>
+                <p>Analyze positions, study games, and improve your understanding</p>
+            </div>
+
+            <div class="analysis-tools">
+                <div class="tool-card" onclick="openPositionEditor()">
+                    <i class="fas fa-edit"></i>
+                    <h3>Position Editor</h3>
+                    <p>Set up custom positions for analysis</p>
+                </div>
+                <div class="tool-card" onclick="openGameDatabase()">
+                    <i class="fas fa-database"></i>
+                    <h3>Master Games</h3>
+                    <p>Study games from chess masters</p>
+                </div>
+                <div class="tool-card" onclick="openOpeningExplorer()">
+                    <i class="fas fa-tree"></i>
+                    <h3>Opening Explorer</h3>
+                    <p>Explore opening variations and statistics</p>
+                </div>
+            </div>
+
+            <div class="analysis-interface" id="analysisInterface" style="display: none;">
+                <div class="analysis-board-section">
+                    <div class="analysis-controls">
+                        <button class="btn btn-icon" onclick="goToStart()" title="Go to Start">
+                            <i class="fas fa-fast-backward"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="previousMove()" title="Previous Move">
+                            <i class="fas fa-step-backward"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="nextMove()" title="Next Move">
+                            <i class="fas fa-step-forward"></i>
+                        </button>
+                        <button class="btn btn-icon" onclick="goToEnd()" title="Go to End">
+                            <i class="fas fa-fast-forward"></i>
+                        </button>
+                        <button class="btn btn-primary" onclick="analyzePosition()">
+                            <i class="fas fa-microscope"></i> Analyze
+                        </button>
+                    </div>
+                    <div class="analysis-board" id="analysisBoard"></div>
+                </div>
+
+                <div class="analysis-panel-section">
+                    <div class="engine-analysis">
+                        <h4>Engine Analysis</h4>
+                        <div class="engine-info">
+                            <div class="engine-evaluation">
+                                <span class="eval-score" id="engineEval">+0.25</span>
+                                <span class="eval-depth">Depth: 18</span>
+                            </div>
+                            <div class="engine-status" id="engineStatus">Ready</div>
+                        </div>
+                        <div class="principal-variation">
+                            <h5>Best Line:</h5>
+                            <div class="pv-moves" id="pvMoves">1. e4 e5 2. Nf3 Nc6</div>
+                        </div>
+                    </div>
+
+                    <div class="move-annotations">
+                        <h4>Move Quality</h4>
+                        <div class="annotation-list" id="annotationList">
+                            <div class="annotation">
+                                <span class="move">1. e4</span>
+                                <span class="quality excellent">Excellent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Profile Section -->
+        <section id="profile" class="section">
+            <div class="profile-header">
+                <div class="profile-info">
+                    <div class="profile-avatar">
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='50' fill='%234a90e2'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='40' font-family='Arial'%3E👤%3C/text%3E%3C/svg%3E" alt="Profile">
+                        <button class="edit-avatar" onclick="changeAvatar()">
+                            <i class="fas fa-camera"></i>
+                        </button>
+                    </div>
+                    <div class="profile-details">
+                        <h2 id="profileName">Chess Enthusiast</h2>
+                        <p class="profile-title">Intermediate Player</p>
+                        <div class="profile-stats">
+                            <div class="stat">
+                                <span class="stat-number">1247</span>
+                                <span class="stat-label">Rating</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number">156</span>
+                                <span class="stat-label">Games</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number">73%</span>
+                                <span class="stat-label">Win Rate</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-content">
+                <div class="profile-tabs">
+                    <button class="tab-btn active" onclick="showProfileTab('games')">Recent Games</button>
+                    <button class="tab-btn" onclick="showProfileTab('stats')">Statistics</button>
+                    <button class="tab-btn" onclick="showProfileTab('achievements')">Achievements</button>
+                    <button class="tab-btn" onclick="showProfileTab('settings')">Settings</button>
+                </div>
+
+                <div class="tab-content">
+                    <!-- Recent Games Tab -->
+                    <div id="games-tab" class="tab-panel active">
+                        <div class="games-list">
+                            <div class="game-record">
+                                <div class="game-result win">W</div>
+                                <div class="game-info">
+                                    <div class="game-opponent">vs ChessBot (1400)</div>
+                                    <div class="game-details">Classical • 23 moves • Queen's Gambit</div>
+                                    <div class="game-time">2 hours ago</div>
+                                </div>
+                                <button class="btn btn-small" onclick="reviewGame(1)">Review</button>
+                            </div>
+                            <div class="game-record">
+                                <div class="game-result loss">L</div>
+                                <div class="game-info">
+                                    <div class="game-opponent">vs Advanced AI (1600)</div>
+                                    <div class="game-details">Blitz • 45 moves • Sicilian Defense</div>
+                                    <div class="game-time">1 day ago</div>
+                                </div>
+                                <button class="btn btn-small" onclick="reviewGame(2)">Review</button>
+                            </div>
+                            <div class="game-record">
+                                <div class="game-result draw">D</div>
+                                <div class="game-info">
+                                    <div class="game-opponent">vs Expert AI (1500)</div>
+                                    <div class="game-details">Rapid • 67 moves • King's Indian</div>
+                                    <div class="game-time">2 days ago</div>
+                                </div>
+                                <button class="btn btn-small" onclick="reviewGame(3)">Review</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Statistics Tab -->
+                    <div id="stats-tab" class="tab-panel">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <h4>Performance by Time Control</h4>
+                                <div class="time-control-stats">
+                                    <div class="time-stat">
+                                        <span class="time-label">Bullet (1+0)</span>
+                                        <span class="time-rating">1180</span>
+                                        <span class="time-games">23 games</span>
+                                    </div>
+                                    <div class="time-stat">
+                                        <span class="time-label">Blitz (5+3)</span>
+                                        <span class="time-rating">1247</span>
+                                        <span class="time-games">89 games</span>
+                                    </div>
+                                    <div class="time-stat">
+                                        <span class="time-label">Rapid (10+0)</span>
+                                        <span class="time-rating">1289</span>
+                                        <span class="time-games">44 games</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Opening Repertoire</h4>
+                                <div class="opening-stats">
+                                    <div class="opening-stat">
+                                        <span class="opening-name">Queen's Gambit</span>
+                                        <span class="opening-score">78% (23)</span>
+                                    </div>
+                                    <div class="opening-stat">
+                                        <span class="opening-name">Sicilian Defense</span>
+                                        <span class="opening-score">65% (17)</span>
+                                    </div>
+                                    <div class="opening-stat">
+                                        <span class="opening-name">King's Indian</span>
+                                        <span class="opening-score">71% (14)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Achievements Tab -->
+                    <div id="achievements-tab" class="tab-panel">
+                        <div class="achievements-grid">
+                            <div class="achievement unlocked">
+                                <i class="fas fa-trophy"></i>
+                                <h4>First Victory</h4>
+                                <p>Win your first game</p>
+                                <span class="achievement-date">Unlocked today</span>
+                            </div>
+                            <div class="achievement unlocked">
+                                <i class="fas fa-fire"></i>
+                                <h4>Win Streak</h4>
+                                <p>Win 5 games in a row</p>
+                                <span class="achievement-date">Unlocked yesterday</span>
+                            </div>
+                            <div class="achievement unlocked">
+                                <i class="fas fa-puzzle-piece"></i>
+                                <h4>Puzzle Solver</h4>
+                                <p>Solve 50 tactical puzzles</p>
+                                <span class="achievement-date">Unlocked 3 days ago</span>
+                            </div>
+                            <div class="achievement locked">
+                                <i class="fas fa-crown"></i>
+                                <h4>Chess Master</h4>
+                                <p>Reach 2000 rating</p>
+                                <span class="achievement-progress">Progress: 1247/2000</span>
+                            </div>
+                            <div class="achievement locked">
+                                <i class="fas fa-brain"></i>
+                                <h4>Tactical Genius</h4>
+                                <p>Solve 500 puzzles</p>
+                                <span class="achievement-progress">Progress: 47/500</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Settings Tab -->
+                    <div id="settings-tab" class="tab-panel">
+                        <div class="settings-form">
+                            <div class="settings-section">
+                                <h4>Board & Pieces</h4>
+                                <div class="setting-group">
+                                    <label for="boardTheme">Board Theme</label>
+                                    <select id="boardTheme" onchange="changeBoardTheme()">
+                                        <option value="classic">Classic Brown</option>
+                                        <option value="blue">Ocean Blue</option>
+                                        <option value="green">Forest Green</option>
+                                        <option value="purple">Royal Purple</option>
+                                        <option value="wood">Wood Grain</option>
+                                    </select>
+                                </div>
+                                <div class="setting-group">
+                                    <label for="pieceSet">Piece Style</label>
+                                    <select id="pieceSet" onchange="changePieceSet()">
+                                        <option value="classic">Classic</option>
+                                        <option value="modern">Modern</option>
+                                        <option value="fantasy">Fantasy</option>
+                                        <option value="minimalist">Minimalist</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="settings-section">
+                                <h4>Gameplay</h4>
+                                <div class="setting-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="showCoordinates" checked onchange="toggleCoordinates()">
+                                        Show Board Coordinates
+                                    </label>
+                                </div>
+                                <div class="setting-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="highlightLastMove" checked onchange="toggleLastMoveHighlight()">
+                                        Highlight Last Move
+                                    </label>
+                                </div>
+                                <div class="setting-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="animatePieces" checked onchange="toggleAnimations()">
+                                        Animate Piece Movement
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="settings-section">
+                                <h4>Audio & Visual</h4>
+                                <div class="setting-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="playSounds" checked onchange="toggleSounds()">
+                                        Play Move Sounds
+                                    </label>
+                                </div>
+                                <div class="setting-group">
+                                    <label for="moveSpeed">Animation Speed</label>
+                                    <input type="range" id="moveSpeed" min="1" max="5" value="3" onchange="changeAnimationSpeed()">
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary" onclick="saveSettings()">
+                                <i class="fas fa-save"></i> Save Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Game Setup Modal -->
+    <div id="gameSetupModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-cog"></i> Game Setup</h3>
+                <button class="close-btn" onclick="closeModal('gameSetupModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="setup-grid">
+                    <div class="setup-option">
+                        <label for="timeControl">Time Control</label>
+                        <select id="timeControl">
+                            <option value="bullet">Bullet (1+0)</option>
+                            <option value="blitz">Blitz (5+3)</option>
+                            <option value="rapid" selected>Rapid (10+0)</option>
+                            <option value="classical">Classical (30+0)</option>
+                            <option value="unlimited">Unlimited</option>
+                        </select>
+                    </div>
+                    <div class="setup-option">
+                        <label for="aiDifficulty">AI Difficulty</label>
+                        <select id="aiDifficulty">
+                            <option value="1">Beginner (600)</option>
+                            <option value="2">Novice (800)</option>
+                            <option value="3">Amateur (1000)</option>
+                            <option value="4" selected>Intermediate (1200)</option>
+                            <option value="5">Advanced (1500)</option>
+                            <option value="6">Expert (1800)</option>
+                            <option value="7">Master (2000)</option>
+                            <option value="8">Grandmaster (2200)</option>
+                            <option value="9">Super GM (2500)</option>
+                            <option value="10">Engine (2800+)</option>
+                        </select>
+                    </div>
+                    <div class="setup-option">
+                        <label for="playerColor">Your Color</label>
+                        <select id="playerColor">
+                            <option value="white" selected>White</option>
+                            <option value="black">Black</option>
+                            <option value="random">Random</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('gameSetupModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="confirmGameStart()">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Promotion Modal -->
+    <div id="promotionModal" class="modal">
+        <div class="modal-content small">
+            <div class="modal-header">
+                <h3>Promote Pawn</h3>
+            </div>
+            <div class="modal-body">
+                <div class="promotion-pieces">
+                    <div class="promotion-piece" onclick="selectPromotion('q')">♕</div>
+                    <div class="promotion-piece" onclick="selectPromotion('r')">♖</div>
+                    <div class="promotion-piece" onclick="selectPromotion('b')">♗</div>
+                    <div class="promotion-piece" onclick="selectPromotion('n')">♘</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Game Over Modal -->
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="gameOverTitle">Game Over</h3>
+            </div>
+            <div class="modal-body">
+                <div class="game-result-display">
+                    <div class="result-icon" id="resultIcon">🏆</div>
+                    <div class="result-text" id="resultText">Congratulations! You won!</div>
+                    <div class="result-details" id="resultDetails">
+                        <p>Game Duration: <span id="gameDuration">15:42</span></p>
+                        <p>Total Moves: <span id="totalMoves">31</span></p>
+                        <p>Your Performance: <span id="performance">Good</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('gameOverModal')">Close</button>
+                <button class="btn btn-primary" onclick="startNewGame()">New Game</button>
+                <button class="btn btn-secondary" onclick="analyzeGame()">Analyze</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="script.js"></script>
+</body>
+</html>
